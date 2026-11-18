@@ -1,0 +1,105 @@
+{
+  "name": "rpgscript-vs",
+  "displayName": "rpgscript-vs",
+  "publisher": "incanterm",
+  "description": "Support for RPGScript",
+  "version": "0.0.3",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/benjamin-t-brown/rpgscript-vs.git"
+  },
+  "homepage": "https://github.com/benjamin-t-brown/rpgscript-vs#readme",
+  "bugs": {
+    "url": "https://github.com/benjamin-t-brown/rpgscript-vs/issues"
+  },
+  "engines": {
+    "node": ">=22",
+    "npm": ">=11.10.0",
+    "vscode": "^1.64.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters"
+  ],
+  "activationEvents": [
+    "onLanguage:rpgscript",
+    "onLanguage:plaintext"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "configuration": {
+      "properties": {
+        "rpgscript.scriptsRoot": {
+          "type": "string",
+          "default": "${workspaceFolder}/src",
+          "description": "Path to root directory of rpgscript files in workspace."
+        },
+        "rpgscript.sceneCommandsPath": {
+          "type": "string",
+          "default": "${workspaceFolder}/src/scene-commands.ts",
+          "description": "Path to scene-commands module (.ts or .js). If the file is missing, the server tries the sibling .js / .ts."
+        },
+        "rpgscript.debug": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether debug mode is enabled."
+        }
+      }
+    },
+    "languages": [
+      {
+        "id": "rpgscript",
+        "aliases": [
+          "RPGScript",
+          "rpgscript"
+        ],
+        "extensions": [
+          ".rpgscript"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./vs-icon.png",
+          "dark": "./vs-icon.png"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "rpgscript",
+        "scopeName": "source.rpgscript",
+        "path": "./syntaxes/rpgscript.tmLanguage"
+      }
+    ]
+  },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "The extension requires workspace trust because it loads configuration files and code from the workspace and executes it."
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "build": "npm run build:client && npm run build:server",
+    "build:client": "webpack",
+    "build:server": "tsc -p src/server/tsconfig.json",
+    "test": "npm run build:server && node scripts/test.js",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "package:vsix": "vsce package --no-dependencies --skip-license"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.15",
+    "@types/vscode": "~1.64.0",
+    "@vscode/vsce": "4.1.1",
+    "ts-loader": "^9.2.5",
+    "typescript": "~5.8.3",
+    "webpack": "^5.52.1",
+    "webpack-cli": "^4.8.0"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^7.0.0",
+    "vscode-languageserver": "^7.0.0",
+    "vscode-languageserver-textdocument": "^1.0.4"
+  }
+}
