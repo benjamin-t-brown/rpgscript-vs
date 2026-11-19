@@ -1,7 +1,7 @@
 <?xml  version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN"   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0" >
-<!-- Generated via Iro -->
+<!-- Originally generated via Iro. This file is the shipped grammar. -->
 <!-- Call parentheses use keyword.operator.assignment or entity.name.function.
      language-configuration.json excludes them from bracket-pair coloring. -->
 <dict>
@@ -45,64 +45,7 @@
           <key>end</key><string>$</string>
           <key>patterns</key><array><dict><key>include</key><string>#in_parens</string></dict></array>
         </dict>
-        <dict>
-          <key>begin</key>
-          <string>(^(\s)*(\+setStorage))</string>
-          <key>beginCaptures</key>
-          <dict>
-            <key>1</key>
-            <dict>
-              <key>name</key>
-              <string>keyword.operator.assignment.rpgscript</string>
-            </dict>
-          </dict>
-          <key>patterns</key>
-          <array>
-            <dict>
-              <key>include</key>
-              <string>#main__1</string>
-            </dict>
-           </array>
-          <key>end</key>
-          <string>(^(?=.{0,1})(?:|))</string>
-          <key>endCaptures</key>
-          <dict>
-            <key>1</key>
-            <dict>
-              <key>name</key>
-              <string>comment.rpgscript</string>
-            </dict>
-          </dict>
-        </dict>
-        <dict>
-          <key>begin</key>
-          <string>(^(\s)*(\+:([\w-]*)))</string>
-          <key>beginCaptures</key>
-          <dict>
-            <key>1</key>
-            <dict>
-              <key>name</key>
-              <string>entity.name.function.rpgscript</string>
-            </dict>
-          </dict>
-          <key>patterns</key>
-          <array>
-            <dict>
-              <key>include</key>
-              <string>#main__2</string>
-            </dict>
-           </array>
-          <key>end</key>
-          <string>(^(?=.{0,1})(?:|))</string>
-          <key>endCaptures</key>
-          <dict>
-            <key>1</key>
-            <dict>
-              <key>name</key>
-              <string>comment.rpgscript</string>
-            </dict>
-          </dict>
-        </dict>
+        <dict><key>include</key><string>#script_call</string></dict>
         <dict>
           <key>begin</key>
           <string>^\s*(#)?(@[^\s()]+)</string>
@@ -187,36 +130,7 @@
         </dict>
         <dict>
           <key>begin</key>
-          <string>(\?)</string>
-          <key>beginCaptures</key>
-          <dict>
-            <key>1</key>
-            <dict>
-              <key>name</key>
-              <string>keyword.operator.assignment.rpgscript</string>
-            </dict>
-          </dict>
-          <key>patterns</key>
-          <array>
-            <dict>
-              <key>include</key>
-              <string>#main__3</string>
-            </dict>
-           </array>
-          <key>end</key>
-          <string>(:)</string>
-          <key>endCaptures</key>
-          <dict>
-            <key>1</key>
-            <dict>
-              <key>name</key>
-              <string>keyword.operator.assignment.rpgscript</string>
-            </dict>
-          </dict>
-        </dict>
-        <dict>
-          <key>begin</key>
-          <string>(^(\s)*\+)</string>
+          <string>(^\s*\+(?!:))</string>
           <key>beginCaptures</key>
           <dict>
             <key>1</key>
@@ -243,6 +157,7 @@
             </dict>
           </dict>
         </dict>
+        <dict><key>include</key><string>#logic_prefix</string></dict>
         <dict>
           <key>begin</key>
           <string>(\{)</string>
@@ -311,6 +226,7 @@
           <key>name</key>
           <string>comment.rpgscript</string>
         </dict>
+        <dict><key>match</key><string>;(?=\s*(?://|$))</string><key>name</key><string>punctuation.terminator.statement.rpgscript</string></dict>
         <dict>
           <key>begin</key>
           <string>(^(\s)*=)</string>
@@ -508,10 +424,61 @@
         </dict>
        </array>
     </dict>
+    <key>call_expressions</key>
+    <dict>
+      <key>patterns</key><array>
+        <dict><key>include</key><string>#script_call</string></dict>
+        <dict>
+          <key>begin</key><string>(?&lt;![\w.-])(\??)(isnot|gt|gte|lt|lte|is|in|all|any|else|oncePerInstance|one|as|once|eq|this|with|func)\s*(\()</string>
+          <key>beginCaptures</key><dict>
+            <key>1</key><dict><key>name</key><string>keyword.operator.assignment.rpgscript</string></dict>
+            <key>2</key><dict><key>name</key><string>keyword.operator.assignment.rpgscript</string></dict>
+            <key>3</key><dict><key>name</key><string>keyword.operator.assignment.rpgscript</string></dict>
+          </dict>
+          <key>end</key><string>(\))|$</string>
+          <key>endCaptures</key><dict><key>1</key><dict><key>name</key><string>keyword.operator.assignment.rpgscript</string></dict></dict>
+          <key>patterns</key><array><dict><key>include</key><string>#in_parens</string></dict></array>
+        </dict>
+        <dict>
+          <key>begin</key><string>(?&lt;![\w.-])(\+?)([A-Za-z_][\w-]*)\s*(\()</string>
+          <key>beginCaptures</key><dict>
+            <key>1</key><dict><key>name</key><string>keyword.operator.assignment.rpgscript</string></dict>
+            <key>2</key><dict><key>name</key><string>entity.name.function.rpgscript</string></dict>
+            <key>3</key><dict><key>name</key><string>keyword.operator.assignment.rpgscript</string></dict>
+          </dict>
+          <key>end</key><string>(\))|$</string>
+          <key>endCaptures</key><dict><key>1</key><dict><key>name</key><string>keyword.operator.assignment.rpgscript</string></dict></dict>
+          <key>patterns</key><array><dict><key>include</key><string>#in_parens</string></dict></array>
+        </dict>
+      </array>
+    </dict>
+    <key>script_call</key>
+    <dict>
+      <key>begin</key><string>(\+:(?:[\w-]|\{[\w.-]+\}|\[[\w-]+\])+)\s*(\()</string>
+      <key>beginCaptures</key><dict>
+        <key>1</key><dict><key>name</key><string>entity.name.function.rpgscript</string></dict>
+        <key>2</key><dict><key>name</key><string>entity.name.function.rpgscript</string></dict>
+      </dict>
+      <key>end</key><string>(\))|$</string>
+      <key>endCaptures</key><dict><key>1</key><dict><key>name</key><string>entity.name.function.rpgscript</string></dict></dict>
+      <key>patterns</key><array><dict><key>include</key><string>#in_parens</string></dict></array>
+    </dict>
+    <key>grouped_expression</key>
+    <dict>
+      <key>begin</key><string>(\()</string>
+      <key>beginCaptures</key><dict><key>1</key><dict><key>name</key><string>keyword.operator.assignment.rpgscript</string></dict></dict>
+      <key>end</key><string>(\))|$</string>
+      <key>endCaptures</key><dict><key>1</key><dict><key>name</key><string>keyword.operator.assignment.rpgscript</string></dict></dict>
+      <key>patterns</key><array><dict><key>include</key><string>#in_parens</string></dict></array>
+    </dict>
     <key>in_parens</key>
     <dict>
       <key>patterns</key>
       <array>
+        <dict><key>match</key><string>//.*</string><key>name</key><string>comment.rpgscript</string></dict>
+        <dict><key>include</key><string>#call_expressions</string></dict>
+        <dict><key>include</key><string>#grouped_expression</string></dict>
+        <dict><key>match</key><string>-&gt;</string><key>name</key><string>keyword.operator.assignment.rpgscript</string></dict>
         <dict>
           <key>match</key><string>(\|)</string>
           <key>name</key><string>keyword.operator.assignment.rpgscript</string>
@@ -712,51 +679,6 @@
           <string>keyword.operator.assignment.rpgscript</string>
         </dict>
         <dict>
-          <key>begin</key>
-           <string>(\b(isnot|gt|lt|is|in|all|any|else|oncePerInstance|one|as|once|eq|this|with|func)\b)</string>
-          <key>beginCaptures</key>
-          <dict>
-            <key>1</key>
-            <dict>
-              <key>name</key>
-              <string>keyword.operator.assignment.rpgscript</string>
-            </dict>
-          </dict>
-          <key>patterns</key>
-          <array>
-            <dict>
-              <key>include</key>
-              <string>#logic__1</string>
-            </dict>
-           </array>
-          <key>end</key>
-          <string>(\))</string>
-          <key>endCaptures</key>
-          <dict>
-            <key>1</key>
-            <dict>
-              <key>name</key>
-              <string>keyword.operator.assignment.rpgscript</string>
-            </dict>
-          </dict>
-        </dict>
-       </array>
-    </dict>
-    <key>logic__1</key>
-    <dict>
-      <key>patterns</key>
-      <array>
-        <dict>
-          <key>match</key>
-          <string>(\()</string>
-          <key>name</key>
-          <string>keyword.operator.assignment.rpgscript</string>
-        </dict>
-        <dict>
-          <key>include</key>
-          <string>#logic</string>
-        </dict>
-        <dict>
           <key>include</key>
           <string>#in_parens</string>
         </dict>
@@ -779,13 +701,10 @@
           </dict>
           <key>patterns</key>
           <array>
-            <dict>
-              <key>include</key>
-              <string>#logic_prefix__1</string>
-            </dict>
+            <dict><key>include</key><string>#logic</string></dict>
            </array>
           <key>end</key>
-          <string>(:)</string>
+          <string>(:)|$</string>
           <key>endCaptures</key>
           <dict>
             <key>1</key>
@@ -794,38 +713,6 @@
               <string>keyword.operator.assignment.rpgscript</string>
             </dict>
           </dict>
-        </dict>
-       </array>
-    </dict>
-    <key>logic_prefix__1</key>
-    <dict>
-      <key>patterns</key>
-      <array>
-        <dict>
-          <key>include</key>
-          <string>#logic</string>
-        </dict>
-       </array>
-    </dict>
-    <key>main__1</key>
-    <dict>
-      <key>patterns</key>
-      <array>
-        <dict>
-          <key>match</key>
-          <string>(\()</string>
-          <key>name</key>
-          <string>keyword.operator.assignment.rpgscript</string>
-        </dict>
-        <dict>
-          <key>match</key>
-          <string>(\))</string>
-          <key>name</key>
-          <string>keyword.operator.assignment.rpgscript</string>
-        </dict>
-        <dict>
-          <key>include</key>
-          <string>#in_parens</string>
         </dict>
        </array>
     </dict>
@@ -849,36 +736,11 @@
         </dict>
        </array>
     </dict>
-    <key>main__2</key>
-    <dict>
-      <key>patterns</key>
-      <array>
-        <dict>
-          <key>match</key>
-          <string>([()])</string>
-          <key>name</key>
-          <string>entity.name.function.rpgscript</string>
-        </dict>
-        <dict>
-          <key>include</key>
-          <string>#in_parens</string>
-        </dict>
-       </array>
-    </dict>
-    <key>main__3</key>
-    <dict>
-      <key>patterns</key>
-      <array>
-        <dict>
-          <key>include</key>
-          <string>#logic</string>
-        </dict>
-       </array>
-    </dict>
     <key>main__4</key>
     <dict>
       <key>patterns</key>
       <array>
+        <dict><key>match</key><string>//.*</string><key>name</key><string>comment.rpgscript</string></dict>
         <dict><key>match</key><string>-&gt;</string><key>name</key><string>keyword.operator.assignment.rpgscript</string></dict>
         <dict>
           <key>match</key><string>(?&lt;=^\+|^\s\+|^\s\s\+|^\s\s\s\+|^\s\s\s\s\+|^\s\s\s\s\s\s\+)((?:if|elseif|while)\b(?=\s)|else\b(?=\s*:))</string>
@@ -889,6 +751,9 @@
           <key>include</key>
           <string>#storage_assignment</string>
         </dict>
+        <dict><key>include</key><string>#logic_prefix</string></dict>
+        <dict><key>include</key><string>#call_expressions</string></dict>
+        <dict><key>include</key><string>#grouped_expression</string></dict>
         <dict>
           <key>begin</key>
           <string>(&apos;)</string>
@@ -915,64 +780,6 @@
             <dict>
               <key>name</key>
               <string>punctuation.terminator.statement.rpgscript</string>
-            </dict>
-          </dict>
-        </dict>
-        <dict>
-          <key>begin</key>
-          <string>(\()</string>
-          <key>beginCaptures</key>
-          <dict>
-            <key>1</key>
-            <dict>
-              <key>name</key>
-              <string>keyword.operator.assignment.rpgscript</string>
-            </dict>
-          </dict>
-          <key>patterns</key>
-          <array>
-            <dict>
-              <key>include</key>
-              <string>#main__6</string>
-            </dict>
-           </array>
-          <key>end</key>
-          <string>(\))</string>
-          <key>endCaptures</key>
-          <dict>
-            <key>1</key>
-            <dict>
-              <key>name</key>
-              <string>keyword.operator.assignment.rpgscript</string>
-            </dict>
-          </dict>
-        </dict>
-        <dict>
-          <key>begin</key>
-          <string>(\?)</string>
-          <key>beginCaptures</key>
-          <dict>
-            <key>1</key>
-            <dict>
-              <key>name</key>
-              <string>keyword.operator.assignment.rpgscript</string>
-            </dict>
-          </dict>
-          <key>patterns</key>
-          <array>
-            <dict>
-              <key>include</key>
-              <string>#main__7</string>
-            </dict>
-           </array>
-          <key>end</key>
-          <string>(:)</string>
-          <key>endCaptures</key>
-          <dict>
-            <key>1</key>
-            <dict>
-              <key>name</key>
-              <string>keyword.operator.assignment.rpgscript</string>
             </dict>
           </dict>
         </dict>
@@ -1017,32 +824,6 @@
         </dict>
        </array>
     </dict>
-    <key>main__6</key>
-    <dict>
-      <key>patterns</key>
-      <array>
-        <dict>
-          <key>match</key>
-          <string>(,)</string>
-          <key>name</key>
-          <string>punctuation.terminator.statement.rpgscript</string>
-        </dict>
-        <dict>
-          <key>include</key>
-          <string>#in_parens</string>
-        </dict>
-       </array>
-    </dict>
-    <key>main__7</key>
-    <dict>
-      <key>patterns</key>
-      <array>
-        <dict>
-          <key>include</key>
-          <string>#logic</string>
-        </dict>
-       </array>
-    </dict>
     <key>main__8</key>
     <dict>
       <key>patterns</key>
@@ -1071,6 +852,12 @@
         <dict>
           <key>match</key><string>^\s*(\{[A-Za-z_][\w-]*(?:\.[A-Za-z_][\w-]*)*\}|\[[A-Za-z_][\w-]*\])(:)(?=\s*\{\s*$)</string>
           <key>captures</key><dict><key>1</key><dict><key>name</key><string>punctuation.terminator.statement.rpgscript</string></dict><key>2</key><dict><key>name</key><string>punctuation.terminator.statement.rpgscript</string></dict></dict>
+        </dict>
+        <dict>
+          <key>begin</key><string>^\s*(?=(?:\+:)?[\w-]+\s*\(.*\)\s*:\s*\{\s*$)</string>
+          <key>end</key><string>(:)(?=\s*\{\s*$)|$</string>
+          <key>endCaptures</key><dict><key>1</key><dict><key>name</key><string>punctuation.terminator.statement.rpgscript</string></dict></dict>
+          <key>patterns</key><array><dict><key>include</key><string>#logic</string></dict></array>
         </dict>
         <dict>
           <key>match</key><string>^\s*([^+].*?)(:)(?=\s*\{\s*$)</string>
@@ -1159,12 +946,6 @@
         <dict>
           <key>match</key><string>(\^|=|&lt;)</string>
           <key>name</key><string>keyword.operator.assignment.rpgscript</string>
-        </dict>
-        <dict>
-          <key>begin</key><string>(\+:[\w-]+)</string>
-          <key>beginCaptures</key><dict><key>1</key><dict><key>name</key><string>entity.name.function.rpgscript</string></dict></dict>
-          <key>end</key><string>$</string>
-          <key>patterns</key><array><dict><key>include</key><string>#main__2</string></dict></array>
         </dict>
         <dict>
           <key>include</key>

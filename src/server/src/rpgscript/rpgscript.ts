@@ -93,25 +93,23 @@ function splitNotInParens(str: string, spl: string) {
 
 function indexOfNotInParens(str: string, spl: string) {
   let quote = '';
-  let ignore = false;
+  let depth = 0;
   for (let i = 0; i < str.length; i++) {
     const ch = str[i];
 
     if (quote) {
       if (ch === quote) {
         quote = '';
-        ignore = false;
       }
     } else if (ch === `"` || ch === `'`) {
       quote = ch;
-      ignore = true;
     } else if (ch === '(') {
-      ignore = true;
+      depth++;
     } else if (ch === ')') {
-      ignore = false;
+      depth--;
     }
 
-    if (!ignore && str[i] === spl) {
+    if (!quote && depth === 0 && ch === spl) {
       return i;
     }
   }
@@ -177,6 +175,8 @@ export interface Conditional {
 export interface Command {
   i: number;
   conditional?: Conditional | boolean;
+  condition?: Conditional | boolean;
+  result?: { localName: string } | { storageKey: string };
   type: string;
   args: (
     | string
@@ -277,7 +277,7 @@ export class Script {
       const block = this.blocks[i];
       for (let j = 0; j < block.commands.length; j++) {
         const command = block.commands[j];
-        if (command.type[0] !== ':' && !sceneHasCommand(scene, command.type)) {
+        if (command.type[0] !== ':' && command.condition === undefined && !sceneHasCommand(scene, command.type)) {
           return {
             msg:
               `No command exists with name "${command.type}" ` +
@@ -360,7 +360,7 @@ export class ScriptParser {
     this.soundsToLoad = [];
   }
 
-  throwParsingError(err: string, lineNum: number, lineContents: string) {
+  throwParsingError(err: string, lineNum: number, lineContents: string): never {
     const error = `{Line ${
       lineNum === -1 ? 0 : lineNum
     }} Script parsing error ${
@@ -403,6 +403,23 @@ export class ScriptParser {
         this.throwParsingError('Set-if-undefined assignments cannot target local variables', lineNum, commandSrc);
       }
       const value = assignment[2].replace(/;$/, '').trim();
+      const commandValue = /^\+?[A-Za-z_][\w-]*\s*\(.*\)$/.test(value);
+      if (commandValue || value.startsWith('?')) {
+        const destination = assignment[1];
+        if (ifUndefined || destination.startsWith('{')) {
+          this.throwParsingError('Command and condition results require a direct local or global assignment', lineNum, commandSrc);
+        }
+        const result = destination.startsWith('[')
+          ? { localName: destination.slice(1, -1) }
+          : { storageKey: destination };
+        if (commandValue) {
+          return { ...this.parseCommand(value.replace(/^\+/, ''), lineNum, script), result };
+        }
+        return {
+          i: lineNum, type: 'evaluateCondition', args: [], result,
+          condition: this.parseConditional(value.slice(1), lineNum, script),
+        };
+      }
       if (!value.startsWith('|') && !value.startsWith('[') && !/^(?:\[[A-Za-z_][\w-]*\]|\{[A-Za-z_][\w.-]*\})\s*->/.test(value) && isNumericExpression(value)) {
         try {
           validateNumericExpression(value);
@@ -491,7 +508,7 @@ export class ScriptParser {
       }
     });
 
-    const type = commandSrc.substr(0, firstParenIndex);
+    const type = commandSrc.slice(0, firstParenIndex).trim();
     const formattedArgs = formatArgs(args) as Command['args'];
     if (type === 'callScript' || type === 'setLocal' || type === 'returnValue') {
       for (let index = type === 'returnValue' ? 0 : 1; index < args.length; index++) {
@@ -500,7 +517,7 @@ export class ScriptParser {
         else if (arg === 'true' || arg === 'false') formattedArgs[index] = arg === 'true';
       }
     }
-    if (['setStorage', 'setStorageIfUndefined', 'setLocal', 'callScript', 'returnValue', 'is', 'isnot', 'eq', 'gt', 'lt', 'in'].includes(type)) {
+    if (['setStorage', 'setStorageIfUndefined', 'setLocal', 'callScript', 'returnValue', 'is', 'isnot', 'eq', 'gt', 'gte', 'lt', 'lte', 'in'].includes(type)) {
       const indices = args.map((_, index) => index).filter(index =>
         index > 0 || (type !== 'callScript' && type !== 'setLocal'));
       for (const index of indices) {
@@ -562,7 +579,15 @@ export class ScriptParser {
     lineNum: number,
     script?: Script
   ): Conditional | boolean {
-    if (conditionalSrc.trim() === 'else') conditionalSrc = 'else()';
+    conditionalSrc = conditionalSrc.trim();
+    if (conditionalSrc.startsWith('+:')) {
+      if (!/^\+:[\w-]+\s*\(.*\)$/.test(conditionalSrc)) {
+        this.throwParsingError('Invalid script call in condition', lineNum, conditionalSrc);
+      }
+      const { args } = this.parseCommand(conditionalSrc.slice(1), lineNum, script);
+      return { type: 'scriptResult', args };
+    }
+    if (conditionalSrc === 'else') conditionalSrc = 'else()';
     const whileLoop = /^while\s+(.+)$/s.exec(conditionalSrc.trim());
     if (whileLoop) {
       const condition = this.parseConditional(whileLoop[1], lineNum, script);
@@ -589,7 +614,9 @@ export class ScriptParser {
       'is',
       'isnot',
       'gt',
+      'gte',
       'lt',
+      'lte',
       'in',
       'eq',
       'any',
@@ -611,13 +638,21 @@ export class ScriptParser {
       );
     }
 
+    if (['gt', 'gte', 'lt', 'lte'].includes(type) && args.length !== 2) {
+      this.throwParsingError(`Invalid arguments for condition ${type}`, lineNum, conditionalSrc);
+    }
+    const rawArgs = splitNotInParens(
+      conditionalSrc.slice(conditionalSrc.indexOf('(') + 1, conditionalSrc.lastIndexOf(')')),
+      ','
+    );
     return {
       type: type,
-      args: args.map(arg => {
+      args: args.map((arg, index) => {
         if (
           typeof arg === 'string' &&
           type !== 'func' &&
-          arg.indexOf('(') !== -1
+          arg.includes('(') &&
+          !/^\s*["']/.test(rawArgs[index])
         ) {
           return this.parseConditional(arg, lineNum, script);
         } else {
@@ -668,17 +703,20 @@ export class ScriptParser {
     conditional: Conditional | boolean;
     endIndex: number;
   } {
-    const conditionalStartIndex = indexOfNotInParens(line, '?');
-    if (conditionalStartIndex > -1) {
-      const colonIndex = line.indexOf(':');
-      if (colonIndex === -1) {
+    const prefix = /^\s*\+?\?\s*/.exec(line);
+    if (prefix) {
+      const start = prefix[0].length;
+      const searchFrom = line.startsWith('+:', start) ? start + 2 : start;
+      const colonOffset = indexOfNotInParens(line.slice(searchFrom), ':');
+      if (colonOffset === -1) {
         this.throwParsingError(
           `Invalid conditional, no ending ':'`,
           lineNum,
           line
         );
       }
-      const conditionalSrc = line.slice(conditionalStartIndex + 1, colonIndex);
+      const colonIndex = searchFrom + colonOffset;
+      const conditionalSrc = line.slice(start, colonIndex);
       const conditional = this.parseConditional(
         conditionalSrc.trim(),
         lineNum,
@@ -1025,17 +1063,7 @@ export class ScriptParser {
             return;
           }
 
-          const { type, args } = this.parseCommand(
-            commandSrc,
-            lineNum,
-            currentScript
-          );
-          const command = {
-            i: lineNum,
-            type,
-            args,
-          };
-          block.commands.push(command);
+          block.commands.push(this.parseCommand(commandSrc, lineNum, currentScript));
         }
       } else if (isChoice) {
         const colonIndex = line.indexOf(':');
