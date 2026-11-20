@@ -2,7 +2,7 @@ import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver/nod
 import * as path from 'path';
 import { pathToFileURL } from 'url';
 import { sourceLinesWithoutComments } from './source';
-import { parseScriptSignature } from './script-signature';
+import { getTriggerScriptPrefix, parseScriptSignature, parseTriggerScriptHeader } from './script-signature';
 
 type Declaration = {
   kind: 'script' | 'trigger';
@@ -18,23 +18,28 @@ const declarations = (file: string, source: string): Declaration[] => {
   const result: Declaration[] = [];
   let trigger = '';
   sourceLinesWithoutComments(source).forEach((visible, lineNumber) => {
-    const header = /^(\s*)(#@|[@#])(.+?)\s*$/.exec(visible);
-    if (!header || !header[3].trim()) return;
-    const kind = header[2] === '#' ? 'trigger' : 'script';
-    let rawName = header[3];
+    const line = visible.trimStart();
+    if (line[0] !== '#' && line[0] !== '@') return;
+    const triggerPrefix = getTriggerScriptPrefix(line);
+    const kind = line[0] === '#' && !triggerPrefix ? 'trigger' : 'script';
+    const prefixLength = triggerPrefix?.length ?? 1;
+    const header = line.slice(prefixLength);
+    let rawName = header.trim();
     let parameters: string[] = [];
     if (kind === 'script') {
       try {
-        const signature = parseScriptSignature(rawName);
+        const signature = triggerPrefix
+          ? parseTriggerScriptHeader(line, triggerPrefix).signature
+          : parseScriptSignature(header);
         rawName = signature.name;
         parameters = signature.parameters;
       } catch { return; }
     }
-    if (header[2] === '#@') trigger = rawName;
+    if (triggerPrefix) trigger = rawName;
     const name = kind === 'script' && rawName === 'this' ? trigger : rawName;
     if (kind === 'trigger') trigger = name;
     if (!name) return;
-    const character = header[1].length + header[2].length;
+    const character = visible.length - line.length + prefixLength + header.length - header.trimStart().length;
     result.push({
       kind, name, file, parameters,
       range: {
@@ -42,7 +47,7 @@ const declarations = (file: string, source: string): Declaration[] => {
         end: { line: lineNumber, character: character + rawName.length },
       },
     });
-    if (header[2] === '#@') result.push({ ...result[result.length - 1], kind: 'trigger' });
+    if (triggerPrefix) result.push({ ...result[result.length - 1], kind: 'trigger' });
   });
   return result;
 };

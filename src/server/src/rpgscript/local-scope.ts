@@ -1,7 +1,7 @@
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver/node';
 import * as path from 'path';
 import { sourceLinesWithoutComments } from './source';
-import { parseScriptSignature } from './script-signature';
+import { getTriggerScriptPrefix, parseScriptSignature } from './script-signature';
 
 function getBodyLocalScopes(lines: string[]): Map<number, Set<string>> {
   const scopes = new Map<number, Set<string>>();
@@ -9,7 +9,7 @@ function getBodyLocalScopes(lines: string[]): Map<number, Set<string>> {
   lines.forEach((line, index) => {
     const trimmed = line.trim();
     if (trimmed.startsWith('@') || trimmed.startsWith('#')) {
-      locals = trimmed.startsWith('@') || trimmed.startsWith('#@') ? new Set<string>() : undefined;
+      locals = trimmed.startsWith('@') || getTriggerScriptPrefix(trimmed) ? new Set<string>() : undefined;
       if (locals) scopes.set(index, locals);
       return;
     }

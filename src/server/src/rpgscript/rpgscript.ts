@@ -1,5 +1,5 @@
 import { logger } from '../logger';
-import { parseScriptSignature } from './script-signature';
+import { getTriggerScriptPrefix, parseScriptSignature, parseTriggerScriptHeader } from './script-signature';
 import { isNumericExpression, validateNumericExpression } from './expression';
 
 type Scene = any;
@@ -773,16 +773,18 @@ export class ScriptParser {
     let lastTriggerName = '';
     lines.forEach((line, lineNum) => {
       line = line.trim();
-      if (line.startsWith('#@')) {
-        lastTriggerName = line.slice(2).split('(')[0].trim();
-        line = line.slice(1);
-      }
-      if (line[0] === '#') {
+      const triggerPrefix = getTriggerScriptPrefix(line);
+      if (line[0] === '#' && !triggerPrefix) {
         lastTriggerName = line.slice(1).trim();
       }
-      if (line[0] === '@') {
+      if (line[0] === '@' || triggerPrefix) {
         let signature: ReturnType<typeof parseScriptSignature>;
-        try { signature = parseScriptSignature(line.slice(1)); } catch { return; }
+        try {
+          signature = triggerPrefix
+            ? parseTriggerScriptHeader(line, triggerPrefix).signature
+            : parseScriptSignature(line.slice(1));
+        } catch { return; }
+        if (triggerPrefix) lastTriggerName = signature.name;
         let scriptName = signature.name;
         if (scriptName === 'this') {
           scriptName = lastTriggerName;
@@ -829,6 +831,7 @@ export class ScriptParser {
       lastValidLine = lineNum;
 
       const firstCh = line[0];
+      const triggerPrefix = isCodeBlock ? undefined : getTriggerScriptPrefix(line);
       if (line === '{') {
         previousBranches.delete(conditionalStack.length);
         isCodeBlock = true;
@@ -845,26 +848,24 @@ export class ScriptParser {
           if (depth > conditionalStack.length) previousBranches.delete(depth);
         }
         isCodeBlock = conditionalStack.length > 0;
-      } else if ((firstCh === '@' || line.startsWith('#@')) && !isCodeBlock) {
-        const isActionHeader = line.startsWith('#@');
+      } else if (!isCodeBlock && (firstCh === '@' || triggerPrefix)) {
         previousBranches.clear();
         loopDepths.length = 0;
         switchDepths.clear();
         let signature: ReturnType<typeof parseScriptSignature>;
+        let triggerHeader: ReturnType<typeof parseTriggerScriptHeader> | undefined;
         try {
-          signature = parseScriptSignature(line.slice(isActionHeader ? 2 : 1));
+          triggerHeader = triggerPrefix ? parseTriggerScriptHeader(line, triggerPrefix) : undefined;
+          signature = triggerHeader?.signature ?? parseScriptSignature(line.slice(1));
         } catch (error) {
           this.throwParsingError((error as Error).message, lineNum, line);
           return;
         }
         let scriptName = signature.name;
-        if (isActionHeader) {
-          if (signature.parameters.length > 0) {
-            this.throwParsingError('Action shorthand scripts cannot have parameters', lineNum, line);
-          }
+        if (triggerHeader) {
           currentTriggerName = scriptName;
           currentTrigger = new Trigger(scriptName, this.name, lineNum);
-          currentTrigger.scriptCalls.push({ type: TriggerType.ACTION, condition: true, scriptName });
+          currentTrigger.addScriptCall(triggerHeader.type, true, scriptName, triggerHeader.intervalMs);
           addTrigger(scriptName, currentTrigger);
           this.recordScriptCall(scriptName, lineNum);
         }

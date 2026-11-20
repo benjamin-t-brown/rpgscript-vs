@@ -19,6 +19,7 @@ const grammar = new Registry({
 const operatorScope = 'keyword.operator.assignment.rpgscript';
 const functionScope = 'entity.name.function.rpgscript';
 const constantScope = 'variable.other.constant.rpgscript';
+const scriptScope = 'storage.type.function.rpgscript';
 
 async function tokenizeLines(lines) {
   const tokenizer = await grammar;
@@ -38,6 +39,18 @@ function assertScope({ line, tokens }, text, expected, start = 0) {
     assert.equal(token?.scopes.at(-1), expected, `${line} (${text}, column ${offset + 1})`);
   }
 }
+
+test('highlights the trigger prefix separately from the script name and timer interval', async function checkTriggerScopes() {
+  for (const prefix of ['#', '#action', '#step', '#load', '#timer']) {
+    const [header] = await tokenizeLines([`  ${prefix}@entry${prefix === '#timer' ? ', 250' : ''}`]);
+    assertScope(header, prefix, functionScope);
+    assertScope(header, '@entry', scriptScope);
+    if (prefix === '#timer') assertScope(header, '250', constantScope);
+  }
+  const [trigger, script] = await tokenizeLines(['#step', '@entry']);
+  assertScope(trigger, '#step', functionScope);
+  assertScope(script, '@entry', scriptScope);
+});
 
 test('uses the same scopes for booleans, predicates, and command calls inside assignments', async function checkAssignmentScopes() {
   const lines = await tokenizeLines([
